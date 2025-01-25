@@ -1,0 +1,6 @@
+scp -i "test.pem" "step1.bin" admin@172.30.0.78:/home/admin/
+chmod 400
+ssh -i "test.pem" admin@172.30.0.42
+
+sudo passwd root
+C:\Users\Alex\Downloads>scp -i "C:\Users\Alex\Downloads\test.pem" "C:\Users\Alex\Downloads\step1.bin" admin@54.174.99.120:/home/admin/
