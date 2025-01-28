@@ -1,0 +1,1 @@
+aws s3 cp Zassy.png s3://corp-fnuser-639ee730/fnuser1/Zassy.png
