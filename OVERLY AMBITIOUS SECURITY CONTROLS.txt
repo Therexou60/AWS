@@ -1,0 +1,106 @@
+# 🚀 Challenge "Overly Ambitious Security Controls" : Résolution et Configuration AWS
+
+
+---
+
+## ✅ Solution 1 : Diagnostiquer et corriger les problèmes existants
+
+### 🏗️ Étapes détaillées
+
+1. **Vérifier la configuration du VPC**
+   - Accédez à la console AWS et ouvrez la section "VPC".
+   - Confirmez que le VPC contient :
+     - Au moins deux sous-réseaux : un public (avec une route Internet Gateway) et un privé.
+     - Une Internet Gateway attachée pour permettre les connexions sortantes.
+   - Vérifiez les Route Tables :
+     - Les sous-réseaux publics doivent avoir une route vers l'Internet Gateway.
+     - Les sous-réseaux privés doivent utiliser un NAT Gateway pour les connexions sortantes.
+
+2. **Auditer les Security Groups**
+   - Identifiez les Security Groups associés aux instances EC2 et au Load Balancer.
+   - Vérifiez les règles d'entrée et de sortie :
+     - Le Load Balancer doit autoriser les connexions HTTP/HTTPS (ports 80 et 443).
+     - Les instances EC2 doivent permettre le trafic depuis le Load Balancer sur le port de l'application (ex. 80 ou 8080).
+     - Assurez-vous que les règles sortantes permettent les connexions vers Internet pour télécharger les dépendances.
+
+3. **Examiner les Network ACLs**
+   - Accédez aux Network ACLs du VPC et vérifiez qu’elles ne bloquent pas :
+     - Le trafic HTTP/HTTPS (ports 80 et 443).
+     - Les connexions SSH (port 22) pour les tests administratifs temporaires.
+
+4. **Diagnostiquer l'Auto Scaling Group (ASG)**
+   - Confirmez que l’ASG :
+     - Utilise le bon Launch Template ou Launch Configuration.
+     - Est associé aux sous-réseaux appropriés (souvent privés).
+   - Vérifiez les politiques de scaling et les événements récents pour détecter les erreurs.
+
+5. **Tester le Load Balancer**
+   - Assurez-vous que l’Application Load Balancer (ALB) est configuré correctement :
+     - Vérifiez que les listeners (ports 80/443) sont configurés.
+     - Confirmez que les groupes cibles (Target Groups) pointent vers les instances EC2 et sont en état "healthy".
+     - Testez le DNS de l’ALB pour voir s’il redirige correctement les requêtes vers les instances.
+
+6. **Vérifier les logs et la surveillance**
+   - Activez les logs ALB et envoyez-les vers un bucket S3.
+   - Consultez les métriques CloudWatch pour identifier :
+     - Les erreurs HTTP 4XX/5XX.
+     - Les éventuelles pannes des instances EC2.
+
+---
+
+## ✅ Solution 2 : Redéploiement de l'application avec des configurations optimales
+
+### 🏗️ Étapes détaillées
+
+1. **Créer un VPC avec ses composants essentiels**
+   - **VPC** : Créez un VPC avec un CIDR adapté (ex. 10.0.0.0/16).
+   - **Subnets** :
+     - Un sous-réseau public (ex. 10.0.1.0/24) pour le Load Balancer.
+     - Un ou plusieurs sous-réseaux privés (ex. 10.0.2.0/24) pour les instances EC2.
+   - **Route Tables** :
+     - Route Table publique avec une route vers l’Internet Gateway.
+     - Route Table privée avec une route vers un NAT Gateway.
+
+2. **Déployer l’Application Load Balancer (ALB)**
+   - Créez un ALB dans le sous-réseau public.
+   - Configurez les listeners pour HTTP et/ou HTTPS.
+   - Associez un Target Group pointant vers les instances EC2 de l’ASG.
+
+3. **Configurer un Auto Scaling Group (ASG)**
+   - Créez un Launch Template contenant :
+     - L’AMI de votre application.
+     - Le type d’instance (ex. t2.micro).
+     - Les paramètres de sécurité (Security Groups).
+   - Configurez l’ASG pour utiliser les sous-réseaux privés.
+   - Définissez des politiques de scaling basées sur les métriques CloudWatch (CPU, mémoire, etc.).
+
+4. **Optimiser les Security Groups**
+   - ALB :
+     - Autoriser le trafic HTTP/HTTPS depuis "Anywhere" (0.0.0.0/0).
+   - Instances EC2 :
+     - Autoriser uniquement le trafic depuis l’ALB sur le port de l’application.
+
+5. **Mettre en place la surveillance et les logs**
+   - Configurez CloudWatch Logs pour suivre les erreurs et les performances de l’ASG.
+   - Activez les logs ALB et surveillez les événements via CloudTrail.
+
+---
+
+## 🔄 Alternatives et solutions supplémentaires
+
+1. **Utiliser AWS Elastic Beanstalk**
+   - Si l'application n'est pas complexe, déployez-la sur Elastic Beanstalk pour simplifier la gestion des composants (VPC, ASG, ALB, etc.).
+
+2. **Activer AWS WAF pour protéger l’ALB**
+   - Ajoutez des règles de sécurité pour bloquer les requêtes malveillantes et limiter le trafic.
+
+3. **Mettre en place des tests automatisés**
+   - Utilisez AWS CodePipeline pour tester automatiquement la configuration à chaque déploiement.
+
+4. **Utiliser une architecture serverless**
+   - Si possible, migrez vers une architecture utilisant AWS Lambda et API Gateway pour réduire la dépendance aux EC2.
+
+5. **Configurer une protection DDoS**
+   - Activez AWS Shield Standard (ou Advanced si nécessaire) pour protéger l’ALB contre les attaques DDoS.
+
+

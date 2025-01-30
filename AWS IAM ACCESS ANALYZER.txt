@@ -1,0 +1,195 @@
+# 🚀 Challenge "AWS IAM Access Analyzer" : Analyse des Permissions et Sécurité IAM
+
+## 📌 Contexte
+En tant qu'administrateur AWS, vous devez auditer et sécuriser les permissions de vos ressources dans un environnement AWS. Vous utiliserez AWS IAM Access Analyzer pour identifier les autorisations excessives ou mal configurées et prendre des mesures correctives afin de garantir une sécurité optimale.
+
+### 🔧 Services AWS potentiellement utilisés
+- **AWS IAM Access Analyzer**
+- **AWS IAM**
+- **AWS S3**
+- **AWS CloudTrail**
+- **AWS Config**
+
+---
+
+## ✅ Solution 1 : Utilisation d'AWS IAM Access Analyzer pour analyser les permissions
+
+### 🏗️ Étapes détaillées
+
+1. **Activer Access Analyzer**
+   - Accédez à la console IAM → "Access Analyzer" → "Create analyzer".
+   - Configurez :
+     - Nom de l'analyseur.
+     - Région.
+     - Type d'analyse : **Account** (pour analyser toutes les ressources du compte).
+
+2. **Analyser les ressources partagées**
+   - Une fois l'analyseur activé, attendez que les résultats apparaissent.
+   - Identifiez les ressources avec des autorisations partagées publiques ou croisées avec d'autres comptes AWS.
+   - Exemple de ressources analysées :
+     - Buckets S3.
+     - KMS Keys.
+     - Rôles IAM.
+
+3. **Évaluer les findings (résultats)**
+   - Dans "Findings", examinez chaque ressource signalée :
+     - Vérifiez les autorisations publiques non intentionnelles.
+     - Vérifiez les partages inter-comptes.
+   - Exemple de résultat :
+     - Un bucket S3 est accessible publiquement via "s3:GetObject".
+
+4. **Corriger les autorisations excessives**
+   - Pour chaque finding :
+     - Modifiez les politiques IAM ou S3 pour restreindre l'accès.
+     - Exemple pour un bucket S3 :
+
+       ```json
+       {
+         "Version": "2012-10-17",
+         "Statement": [
+           {
+             "Effect": "Deny",
+             "Principal": "*",
+             "Action": "s3:GetObject",
+             "Resource": "arn:aws:s3:::example-bucket/*",
+             "Condition": {
+               "IpAddress": {
+                 "aws:SourceIp": "192.168.0.0/24"
+               }
+             }
+           }
+         ]
+       }
+       ```
+
+5. **Activer les logs pour surveiller les modifications**
+   - Configurez AWS CloudTrail pour capturer les événements IAM.
+   - Activez les logs Access Analyzer pour suivre les findings corrigés et les changements futurs.
+
+---
+
+## ✅ Solution 2 : Surveillance proactive avec AWS Config et Access Analyzer
+
+### 🏗️ Étapes détaillées
+
+1. **Activer AWS Config**
+   - Accédez à la console AWS Config → "Settings".
+   - Activez la surveillance des ressources IAM, S3, KMS, etc.
+   - Créez des règles AWS Config pour vérifier les meilleures pratiques :
+     - Exemple : `s3-bucket-public-read-prohibited`.
+
+2. **Intégrer AWS Config avec Access Analyzer**
+   - Configurez une règle Config personnalisée pour vérifier que toutes les findings d'Access Analyzer sont résolues.
+   - Recevez des notifications via Amazon SNS en cas de findings non corrigés.
+
+3. **Configurer des alarmes CloudWatch**
+   - Créez une alarme CloudWatch pour surveiller les activités suspectes détectées par Access Analyzer.
+   - Exemple : Alarme basée sur un taux élevé de findings critiques.
+
+4. **Mettre en place des alertes automatisées avec Lambda**
+   - Créez une fonction AWS Lambda déclenchée par les findings d'Access Analyzer.
+   - Exemple : Si une ressource devient publique, envoyer une alerte et appliquer une politique corrective automatiquement.
+
+---
+
+## 🔄 Alternatives et solutions supplémentaires
+
+1. **Utiliser des stratégies basées sur les balises**
+   - Appliquez des politiques IAM qui limitent l'accès en fonction des balises attribuées aux ressources.
+
+2. **Activer Amazon Macie pour une analyse approfondie des données S3**
+   - Identifier les données sensibles et vérifier qu'elles ne sont pas exposées publiquement.
+
+3. **Créer des workflows Step Functions pour la remédiation**
+   - Automatiser les actions correctives pour les findings critiques d'Access Analyzer.
+
+4. **Limiter les accès à l'aide d'ABAC (Attribute-Based Access Control)**
+   - Créez des politiques IAM dynamiques basées sur des attributs utilisateur.
+
+
+# ACCESS DENIED: AWS IAM ACCESS ANALYZER
+
+
+## 🚀 Solution 1 : Utilisation de IAM Access Analyzer
+
+### 🏗️ Étapes à suivre
+
+1. **Accéder à IAM Access Analyzer**
+   - Aller dans la console AWS → IAM
+   - Sélectionner **Access Analyzer** dans le menu latéral
+   - Vérifier si un analyseur est déjà configuré, sinon en créer un
+
+2. **Lancer une analyse des accès**
+   - Vérifier les findings (résultats) générés par l'analyseur
+   - Rechercher les findings liés aux **S3 buckets**
+   - Identifier les politiques (policies) qui autorisent un accès externe
+
+3. **Corriger les permissions S3**
+   - Aller dans la console AWS → S3
+   - Sélectionner le bucket concerné
+   - Vérifier l’onglet "Permissions"
+   - Modifier ou supprimer les policy statements trop permissives
+   - Désactiver l’accès public si nécessaire
+
+4. **Tester et valider les corrections**
+   - Relancer une analyse avec IAM Access Analyzer
+   - Vérifier que les findings ont été résolus
+
+---
+
+## 🛠️ Solution 2 : Utilisation de S3 Block Public Access et Bucket Policies
+
+### 🏗️ Étapes à suivre
+
+1. **Vérifier l’état du bucket S3**
+   - Aller dans AWS S3
+   - Sélectionner le bucket concerné
+   - Vérifier la section "Block Public Access"
+
+2. **Activer S3 Block Public Access**
+   - Activer l’option **Block all public access**
+   - Sauvegarder les modifications
+
+3. **Modifier les Bucket Policies**
+   - Aller dans l’onglet "Permissions"
+   - Modifier la bucket policy pour restreindre l’accès aux comptes AWS de confiance uniquement
+   - Exemple de policy restrictive :
+   
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Deny",
+         "Principal": "*",
+         "Action": "s3:*",
+         "Resource": "arn:aws:s3:::example-bucket/*",
+         "Condition": {
+           "StringNotEquals": {
+             "aws:PrincipalAccount": "123456789012"
+           }
+         }
+       }
+     ]
+   }
+   ```
+
+4. **Revalider avec IAM Access Analyzer**
+   - Relancer l’analyse pour s’assurer que les accès externes ont été supprimés
+
+---
+
+## 🏗️ Solutions Alternatives
+
+1. **AWS Config pour surveiller les changements de permissions**
+   - Configurer AWS Config pour détecter et signaler les changements anormaux des policies S3
+
+2. **CloudTrail pour analyser l’historique des accès**
+   - Vérifier avec AWS CloudTrail quels utilisateurs ou services ont accédé aux S3 buckets
+
+3. **GuardDuty pour identifier des comportements suspects**
+   - Utiliser AWS GuardDuty pour détecter des accès anormaux et des menaces potentielles
+
+4. **AWS SCP (Service Control Policies) pour restreindre les accès globaux**
+   - Si nécessaire, utiliser **AWS Organizations** pour appliquer des restrictions globales sur les accès aux ressources sensibles
+

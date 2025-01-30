@@ -1,0 +1,80 @@
+# 🚀 Sécurisation d'un Application Load Balancer avec AWS WAF
+
+
+
+## ✅ Solution 1 : Mise en place d'AWS WAF avec des règles de sécurité
+
+### 🏗️ Étapes détaillées
+
+1. **Créer un Web ACL dans AWS WAF**
+   - Accédez à la console AWS et ouvrez le service AWS WAF.
+   - Sélectionnez "Créer un Web ACL".
+   - Donnez un nom au Web ACL et choisissez "Régional" pour le scope (car nous travaillons avec ALB).
+   - Sélectionnez "Application Load Balancer" comme ressource associée et ajoutez votre ALB.
+
+2. **Ajouter des règles de protection standard**
+   - **Utiliser les règles gérées AWS**
+     - Activez "AWS Managed Rules" et ajoutez des règles de protection comme:
+       - **Core Rule Set (CRS)** : Protège contre les menaces web courantes.
+       - **SQL Injection Rule Set** : Détecte et bloque les attaques SQL Injection.
+       - **Cross-Site Scripting (XSS) Rule Set** : Protège contre les attaques XSS.
+       - **Amazon IP Reputation List** : Bloque les adresses IP suspectes.
+
+   - **Créer des règles personnalisées**
+     - Ajouter des règles spécifiques pour restreindre les accès :
+       - Bloquer des requêtes en fonction des pays (GeoIP filtering).
+       - Mettre en place un **rate limiting** pour limiter les requêtes abusives.
+       - Filtrer les requêtes sur des patterns spécifiques dans l'URL.
+
+3. **Configurer une allow-list pour certaines requêtes HTTP**
+   - Créez une nouvelle règle dans AWS WAF.
+   - Définissez des conditions pour autoriser uniquement certaines adresses IP ou certaines méthodes HTTP.
+   - Placez cette règle en priorité avant les règles de blocage.
+
+4. **Appliquer le Web ACL à l'ALB**
+   - Aller dans AWS EC2 → Load Balancers.
+   - Sélectionner l'ALB concerné.
+   - Aller dans l'onglet "Web ACL" et attacher le Web ACL créé.
+
+5. **Activer les logs et la surveillance**
+   - Configurez AWS WAF Logging pour envoyer les logs vers Amazon S3 ou CloudWatch.
+   - Analysez les logs pour ajuster les règles en fonction du trafic reçu.
+
+---
+
+## 🛠️ Solution 2 : Sécurisation avancée avec Security Groups et ALB Rules
+
+### 🏗️ Étapes détaillées
+
+1. **Restreindre l'accès avec Security Groups**
+   - Accédez à la console AWS et ouvrez le service EC2.
+   - Sélectionnez l'instance ou l'ALB et modifiez les Security Groups associés.
+   - Appliquez les restrictions suivantes :
+     - Autoriser uniquement le trafic HTTP/HTTPS (ports 80 et 443).
+     - Restreindre les accès par IP pour limiter les connexions non autorisées.
+     - Vérifier que les instances EC2 ne sont accessibles que depuis l’ALB.
+
+2. **Configurer des règles avancées sur l'ALB**
+   - Aller dans la console AWS EC2 → Load Balancers.
+   - Sélectionner l'ALB et aller dans l’onglet "Listeners".
+   - Ajouter des règles pour :
+     - Rediriger HTTP vers HTTPS.
+     - Bloquer les requêtes malformées ou suspectes.
+     - Appliquer du **rate limiting** pour limiter les attaques par force brute.
+
+3. **Activer AWS Shield Standard pour protection DDoS**
+   - AWS Shield est automatiquement activé sur AWS WAF et ALB.
+   - Vérifiez qu’il est bien actif via AWS Shield Dashboard.
+
+4. **Configurer AWS CloudWatch et GuardDuty pour surveillance continue**
+   - Activer **AWS CloudWatch Logs** pour suivre les événements WAF et ALB.
+   - Utiliser **Amazon GuardDuty** pour détecter les comportements suspects et recevoir des alertes.
+
+---
+
+## 🔄 Alternatives et solutions supplémentaires
+
+1. **Utiliser AWS Firewall Manager** pour une gestion centralisée des règles WAF sur plusieurs ALB.
+2. **Mettre en place AWS Shield Advanced** pour une protection renforcée contre les attaques DDoS.
+3. **Activer AWS Config Rules** pour s’assurer que les meilleures pratiques de sécurité sont appliquées.
+4. **Utiliser AWS Lambda pour automatiser la réponse aux attaques détectées**.

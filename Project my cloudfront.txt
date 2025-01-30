@@ -1,0 +1,61 @@
+# 🚀 Sécurisation d'un Application Load Balancer derrière Amazon CloudFront
+
+
+
+## ✅ Solution 1 : Sécurisation du niveau réseau (L4) avec Security Groups et IP Restriction
+
+### 🏗️ Étapes détaillées
+
+1. **Identifier les adresses IP de CloudFront**
+   - Récupérer les plages IP utilisées par CloudFront via AWS (disponible sur [AWS IP Ranges](https://docs.aws.amazon.com/general/latest/gr/aws-ip-ranges.html)).
+
+2. **Modifier les Security Groups de l'ALB**
+   - Aller dans AWS EC2 → Security Groups.
+   - Trouver le Security Group associé à l'ALB.
+   - **Supprimer toute règle autorisant le trafic HTTP/HTTPS ouvert à tous (`0.0.0.0/0`)**.
+   - Ajouter une règle autorisant uniquement le trafic HTTP/HTTPS venant des adresses IP CloudFront.
+
+3. **Vérifier la restriction**
+   - Accéder à l'ALB directement via son DNS → Vérifier qu'il est bloqué.
+   - Accéder via CloudFront → Vérifier que l'accès fonctionne.
+
+---
+
+## ✅ Solution 2 : Sécurisation du niveau applicatif (L7) avec CloudFront Headers et WAF
+
+### 🏗️ Étapes détaillées
+
+1. **Configurer CloudFront pour envoyer un Header personnalisé**
+   - Aller dans AWS CloudFront.
+   - Sélectionner la distribution concernée.
+   - Dans "Behaviors", modifier le comportement associé à l'ALB.
+   - Ajouter un header personnalisé (ex: `X-CloudFront-Origin: allowed`).
+
+2. **Créer une règle WAF pour bloquer l'accès direct à l'ALB**
+   - Aller dans AWS WAF.
+   - Créer un nouveau Web ACL et l’attacher à l’ALB.
+   - Ajouter une règle personnalisée :
+     - **Autoriser uniquement les requêtes contenant `X-CloudFront-Origin: allowed`**.
+     - **Bloquer toute autre requête**.
+
+3. **Tester la protection**
+   - Accéder à l'ALB directement via son DNS → Vérifier qu'il est bloqué.
+   - Accéder via CloudFront → Vérifier que l'accès fonctionne.
+
+---
+
+## 🔄 Alternatives et solutions supplémentaires
+
+1. **Utiliser AWS Lambda@Edge**
+   - Ajouter une fonction Lambda@Edge pour filtrer les requêtes basées sur l'`User-Agent` et d'autres caractéristiques spécifiques.
+
+2. **Mettre en place AWS Shield Advanced**
+   - Protection supplémentaire contre les attaques DDoS ciblant CloudFront et ALB.
+
+3. **Activer AWS GuardDuty**
+   - Détection avancée des tentatives d'accès non autorisées.
+
+4. **Configurer AWS CloudTrail Logs**
+   - Surveillance des accès directs et ajustement des règles si nécessaire.
+
+

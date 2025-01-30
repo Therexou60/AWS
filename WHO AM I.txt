@@ -1,0 +1,229 @@
+# 🚀 Challenge "Who AM I" : Gestion des accès avec AWS
+
+## 📌 Contexte
+En tant qu'administrateur AWS, votre objectif est de garantir une gestion des identités et des accès (IAM) sécurisée, tout en implémentant des politiques d'accès adaptées. Ce challenge consiste à :
+- Configurer des utilisateurs et groupes IAM.
+- Appliquer des politiques d'accès granulaires.
+- Activer des mécanismes d'authentification sécurisés.
+
+### 🔧 Services AWS potentiellement utilisés
+- **AWS IAM (Identity and Access Management)**
+- **AWS S3 (Simple Storage Service)**
+- **CloudWatch Logs**
+- **AWS Organizations**
+- **AWS Cognito** (optionnel)
+
+---
+
+## ✅ Solution 1 : Gestion des accès via IAM
+
+### 🏗️ Étapes détaillées
+
+1. **Créer des utilisateurs IAM avec permissions minimales**
+   - Accéder à la console AWS → IAM → "Users" → "Add users".
+   - Configurer :
+     - Nom d'utilisateur.
+     - Accès programmatique (clé d'accès) ou accès à la console AWS.
+     - **Ne pas attribuer d'accès administrateur global**.
+   - Ajouter les utilisateurs à un groupe IAM.
+
+2. **Créer des groupes IAM avec des politiques adaptées**
+   - Aller dans IAM → "Groups" → "Create Group".
+   - Ajouter des utilisateurs IAM au groupe.
+   - Associer une politique spécifique :
+     - **PowerUserAccess** : Si besoin d'accès sans gestion IAM.
+     - **S3ReadOnlyAccess** : Pour lecture seule sur S3.
+     - **Politiques personnalisées** : Créer une politique JSON pour limiter l'accès (exemple ci-dessous).
+
+     ```json
+     {
+       "Version": "2012-10-17",
+       "Statement": [
+         {
+           "Effect": "Allow",
+           "Action": "s3:GetObject",
+           "Resource": "arn:aws:s3:::example-bucket/*"
+         }
+       ]
+     }
+     ```
+
+3. **Configurer l'authentification Multi-Factor (MFA)**
+   - Aller dans IAM → "Users" → Sélectionner un utilisateur → "Security credentials".
+   - Activer MFA (virtual MFA device, U2F, etc.).
+   - Fournir les instructions pour configurer une application MFA (Google Authenticator, Authy, etc.).
+
+4. **Activer les logs IAM dans CloudTrail**
+   - Accéder à AWS CloudTrail.
+   - Créer un trail pour capturer toutes les activités IAM.
+   - Envoyer les logs vers un bucket S3 pour analyse.
+
+5. **Limiter les accès avec Conditions IAM**
+   - Ajouter des conditions basées sur :
+     - **SourceIP** : Restreindre les accès à une plage IP spécifique.
+     - **Heure** : Autoriser uniquement certains créneaux horaires.
+
+     Exemple :
+     ```json
+     {
+       "Effect": "Deny",
+       "Action": "*",
+       "Resource": "*",
+       "Condition": {
+         "NotIpAddress": {
+           "aws:SourceIp": "192.168.0.0/24"
+         }
+       }
+     }
+     ```
+
+---
+
+## ✅ Solution 2 : Gestion des identités avec AWS Cognito (Optionnel)
+
+### 🏗️ Étapes détaillées
+
+1. **Créer un User Pool dans AWS Cognito**
+   - Accéder à la console Cognito → "Manage User Pools" → "Create a user pool".
+   - Configurer les paramètres d'utilisateur (e-mail, numéro de téléphone, etc.).
+   - Activer MFA pour sécuriser les connexions utilisateur.
+
+2. **Configurer une application cliente**
+   - Ajouter une application cliente dans le User Pool.
+   - Configurer les permissions pour accéder aux ressources AWS.
+
+3. **Connecter Cognito à des groupes IAM**
+   - Créer des rôles IAM pour les groupes Cognito.
+   - Associer des politiques pour limiter l'accès.
+
+4. **Intégrer Cognito avec votre application**
+   - Utiliser l'API AWS Cognito pour l'authentification et l'autorisation.
+   - Gérer les tokens JWT pour valider les sessions utilisateur.
+
+---
+
+## 🔄 Alternatives et solutions supplémentaires
+
+1. **Utiliser AWS Organizations pour gérer les comptes multiples**
+   - Centraliser la gestion des politiques IAM via une stratégie d'organisation.
+
+2. **Mettre en place des alarmes CloudWatch pour surveiller les activités suspectes**
+   - Exemple : Détection des tentatives de connexion échouées répétées.
+
+3. **Activer AWS Config Rules**
+   - Vérifier que toutes les ressources respectent les meilleures pratiques IAM (MFA activé, politique restrictive, etc.).
+
+4. **Automatiser la gestion avec AWS CLI ou AWS SDK**
+   - Créer des scripts pour provisionner rapidement les utilisateurs et groupes IAM.
+
+# WHO AM I - Identification de l'utilisateur IAM
+
+## 🚀 Solution 1 : Identification via AWS CLI
+
+### 🏗️ Étapes à suivre
+
+1. **Récupérer la clé d'accès depuis S3**
+   - Aller dans la console AWS → S3
+   - Localiser l'objet contenant les credentials
+   - Télécharger et ouvrir le fichier
+   
+2. **Configurer temporairement AWS CLI avec la clé trouvée**
+   ```sh
+   aws configure set aws_access_key_id <ACCESS_KEY>
+   aws configure set aws_secret_access_key <SECRET_KEY>
+   ```
+
+3. **Identifier l'utilisateur IAM et l'account AWS**
+   ```sh
+   aws sts get-caller-identity
+   ```
+   - Cette commande retourne l'ARN de l'utilisateur, son ID et le numéro du compte AWS
+   
+4. **Lister les permissions associées**
+   ```sh
+   aws iam list-attached-user-policies --user-name <USERNAME>
+   ```
+   - Permet d’identifier les permissions de cet utilisateur
+
+5. **Désactiver immédiatement la clé compromise**
+   ```sh
+   aws iam update-access-key --access-key-id <ACCESS_KEY> --status Inactive --user-name <USERNAME>
+   ```
+   
+6. **Supprimer la clé après vérification**
+   ```sh
+   aws iam delete-access-key --access-key-id <ACCESS_KEY> --user-name <USERNAME>
+   ```
+   
+---
+
+## 🛠️ Solution 2 : Vérification via la Console AWS
+
+### 🏗️ Étapes à suivre
+
+1. **Accéder à la console AWS → IAM**
+2. **Aller dans la section "Users" et rechercher l’Access Key**
+3. **Vérifier les logs CloudTrail pour voir l’activité de cette clé**
+4. **Désactiver/Supprimer la clé compromise**
+5. **Notifier les équipes de sécurité pour analyser l’origine de la fuite**
+# WHO AM I - Identification d'un Utilisateur IAM
+
+## 🚀 Solution 1 : Utilisation de la Console AWS
+
+### 🏗️ Étapes à suivre
+
+1. **Accéder au bucket S3 contenant les clés**
+   - Aller dans la console AWS → S3
+   - Trouver le bucket mentionné dans l’énoncé
+   - Rechercher l’objet contenant l’Access Key et le Secret Key
+
+2. **Identifier l’utilisateur IAM à partir de l’Access Key**
+   - Aller dans la console AWS → IAM
+   - Dans l’onglet "Access Management", sélectionner "Users"
+   - Rechercher dans la liste des utilisateurs si l’Access Key correspond à un utilisateur existant
+
+3. **Vérifier les permissions associées**
+   - Examiner les permissions de l’utilisateur trouvé
+   - Identifier si cet utilisateur a des droits excessifs
+
+4. **Révoquer et sécuriser l’accès si nécessaire**
+   - Si l’Access Key a été exposée, la désactiver immédiatement
+   - Générer une nouvelle paire de clés et mettre à jour les services utilisant cette clé
+   - Informer les administrateurs pour prendre des mesures de sécurité
+
+---
+
+## 🛠️ Solution 2 : Automatisation avec AWS Config et IAM Access Analyzer
+
+### 🏗️ Étapes à suivre
+
+1. **Activer AWS Config pour suivre les changements IAM**
+   - Aller dans la console AWS → AWS Config
+   - Activer AWS Config et ajouter des règles pour suivre les changements IAM
+
+2. **Utiliser IAM Access Analyzer pour identifier les accès non sécurisés**
+   - Aller dans la console AWS → IAM
+   - Ouvrir "Access Analyzer"
+   - Vérifier si l’utilisateur ayant les clés exposées a des permissions trop larges
+
+3. **Remédier aux failles de sécurité**
+   - Révoquer les accès inappropriés
+   - Appliquer des politiques de permissions plus restrictives
+
+
+## 🏗️ Solutions Alternatives si les approches ci-dessus ne fonctionnent pas
+
+1. **CloudTrail pour retracer l’activité de la clé**
+   - Si la clé a été utilisée, CloudTrail permettra de voir quelles actions ont été effectuées
+   
+2. **AWS Config pour vérifier la conformité des clés IAM**
+   - AWS Config peut signaler les clés IAM laissées actives trop longtemps
+   
+3. **Secrets Manager pour gérer les credentials sensibles**
+   - Pour éviter ce problème à l’avenir, stocker les credentials dans AWS Secrets Manager
+
+4. **Créer un SCP (Service Control Policy) pour restreindre l’utilisation des clés IAM**
+   - Permet d’éviter que des clés IAM puissent être utilisées en dehors d’un environnement AWS spécifique
+
+5. **Utilisation de CodeWhisperer pour détecter les fuites dans le code**
+   - Intégrer CodeWhisperer pour détecter automatiquement les fuites de credentials dans les repositories

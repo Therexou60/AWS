@@ -1,0 +1,204 @@
+# 🚀 Challenge "Missing Front-End" : Résolution et Configuration AWS
+
+## 📌 Contexte
+Vous êtes responsable d'une application web où l'équipe front-end signale que les fichiers statiques (HTML, CSS, JS) ne s'affichent plus correctement. Vous devez diagnostiquer et résoudre ce problème en utilisant les services AWS pour héberger et distribuer correctement ces fichiers.
+
+### 🔧 Services AWS potentiellement utilisés
+- **Amazon S3**
+- **Amazon CloudFront**
+- **AWS Route 53**
+- **AWS Certificate Manager (ACM)**
+- **AWS CloudWatch**
+
+---
+
+## ✅ Solution 1 : Hébergement des fichiers statiques avec Amazon S3 et CloudFront
+
+### 🏗️ Étapes détaillées
+
+1. **Créer un bucket S3 pour héberger les fichiers statiques**
+   - Accédez à la console Amazon S3 et créez un nouveau bucket.
+     - Donnez-lui un nom unique (ex. `frontend-static-files`).
+     - Choisissez la région où vous souhaitez héberger.
+   - Téléversez les fichiers statiques (HTML, CSS, JS) dans le bucket.
+   - Configurez les autorisations :
+     - Activez "Bloquer tout accès public" pour sécuriser votre bucket.
+     - Configurez une politique de bucket pour permettre l'accès CloudFront :
+
+       ```json
+       {
+         "Version": "2012-10-17",
+         "Statement": [
+           {
+             "Effect": "Allow",
+             "Principal": {
+               "Service": "cloudfront.amazonaws.com"
+             },
+             "Action": "s3:GetObject",
+             "Resource": "arn:aws:s3:::frontend-static-files/*"
+           }
+         ]
+       }
+       ```
+
+2. **Configurer Amazon CloudFront pour accélérer la distribution**
+   - Créez une distribution CloudFront dans la console AWS.
+   - Configurez :
+     - Origine : le bucket S3 créé précédemment.
+     - Paramètres de cache :
+       - Activer le cache des fichiers statiques pour améliorer les performances.
+       - Configurez des TTL adaptés (ex. 1 jour).
+     - Ajouter une politique de sécurité HTTP (forcer HTTPS).
+   - Enregistrez la distribution et attendez son déploiement.
+
+3. **Configurer AWS Certificate Manager (ACM) pour HTTPS**
+   - Accédez à la console ACM et demandez un certificat SSL.
+     - Choisissez "Validation DNS" pour lier un domaine à votre distribution CloudFront.
+   - Une fois validé, associez le certificat à votre distribution CloudFront.
+
+4. **Relier un domaine avec AWS Route 53**
+   - Accédez à la console Route 53 et créez un enregistrement DNS (CNAME ou Alias).
+     - Pointez vers l'URL CloudFront fournie.
+   - Vérifiez que le domaine est correctement configuré et que votre front-end est accessible.
+
+5. **Activer les logs et la surveillance**
+   - Configurez les logs CloudFront et S3 pour surveiller l'accès aux fichiers.
+   - Utilisez AWS CloudWatch pour créer des alarmes en cas d'erreurs HTTP 4XX/5XX.
+
+---
+
+## ✅ Solution 2 : Diagnostiquer et corriger les erreurs front-end existantes
+
+### 🏗️ Étapes détaillées
+
+1. **Vérifier les permissions du bucket S3**
+   - Assurez-vous que les fichiers sont accessibles et qu'ils ne renvoient pas d'erreur 403 (Forbidden).
+   - Testez les URL directes des fichiers dans le navigateur.
+
+2. **Diagnostiquer les erreurs avec CloudFront**
+   - Vérifiez les paramètres de l'origine CloudFront :
+     - Assurez-vous que l'URL du bucket S3 est correcte.
+     - Vérifiez que les permissions "s3:GetObject" sont configurées pour CloudFront.
+   - Activez les logs de CloudFront pour identifier les erreurs.
+
+3. **Corriger les erreurs de chemin ou d'index**
+   - Configurez un document d'index et un document d'erreur pour CloudFront :
+     - Exemple : `index.html` pour les requêtes sans chemin spécifique.
+   - Assurez-vous que les chemins des fichiers référencés dans `index.html` sont corrects.
+
+4. **Configurer les headers HTTP pour éviter les erreurs CORS**
+   - Ajoutez des headers CORS dans le bucket S3 :
+
+     ```xml
+     <CORSConfiguration>
+       <CORSRule>
+         <AllowedOrigin>*</AllowedOrigin>
+         <AllowedMethod>GET</AllowedMethod>
+         <MaxAgeSeconds>3000</MaxAgeSeconds>
+         <AllowedHeader>*</AllowedHeader>
+       </CORSRule>
+     </CORSConfiguration>
+     ```
+
+5. **Tester les performances et le bon fonctionnement**
+   - Utilisez des outils comme `curl` ou des navigateurs pour tester les réponses HTTP.
+   - Vérifiez que les fichiers statiques sont correctement servis avec HTTPS.
+
+---
+
+## 🔄 Alternatives et solutions supplémentaires
+
+1. **Utiliser un autre CDN**
+   - Si CloudFront ne répond pas à vos besoins, envisagez un autre CDN comme Akamai ou Cloudflare.
+
+2. **Activer la compression des fichiers statiques**
+   - Configurez CloudFront pour servir les fichiers compressés (Gzip ou Brotli).
+
+3. **Héberger avec AWS Amplify si l'application est plus complexe**
+   - Pour une application front-end utilisant des frameworks comme React ou Angular, utilisez AWS Amplify pour simplifier le déploiement.
+
+4. **Mettre en place une stratégie de sécurité avancée**
+   - Ajouter AWS WAF à votre distribution CloudFront pour protéger l'application contre les attaques web.
+
+## 🚀 Solution 1 : Utilisation de AWS Lambda et CloudFront
+
+### 🏗️ Étapes à suivre
+
+1. **Vérifier l'existence de la fonction Lambda**
+   - Aller dans la console AWS → AWS Lambda
+   - Rechercher la fonction associée au front-end
+   - Vérifier si elle existe encore et fonctionne correctement
+   - Tester la fonction avec un payload adapté
+
+2. **Restaurer la fonction Lambda si nécessaire**
+   - Si la fonction est supprimée ou corrompue, la recréer
+   - Déployer une nouvelle fonction Lambda en Node.js/Python qui sert le front-end
+   - S'assurer que la fonction a les bonnes permissions et qu'elle retourne bien les données attendues
+
+3. **Créer un CloudFront Distribution pour exposer le front-end**
+   - Aller dans la console AWS → CloudFront
+   - Créer une nouvelle distribution
+   - Définir la fonction Lambda comme origine
+   - Configurer les paramètres de cache et les headers de sécurité
+
+4. **Tester l’accès au front-end**
+   - Ouvrir l’URL CloudFront et voir si les données sont accessibles
+   - Vérifier les logs CloudWatch en cas d'erreur
+
+---
+
+## 🛠️ Solution 2 : Hébergement du Front-End sur S3 avec CloudFront
+
+### 🏗️ Étapes à suivre
+
+1. **Créer un bucket S3 pour héberger le front-end**
+   - Aller dans la console AWS → S3
+   - Créer un bucket (ex: `gdi-frontend`)
+   - Activer l’option "Static Website Hosting"
+   - Télécharger les fichiers HTML/CSS/JS
+
+2. **Configurer les permissions du bucket**
+   - Rendre les fichiers publics si nécessaire
+   - Ajouter une policy S3 pour permettre la lecture des fichiers
+
+3. **Créer une distribution CloudFront pointant vers S3**
+   - Aller dans CloudFront
+   - Créer une nouvelle distribution avec l’origine = S3
+   - Activer le cache pour de meilleures performances
+
+4. **Tester l’accès au front-end**
+   - Ouvrir l’URL CloudFront
+   - Vérifier les logs CloudWatch en cas de problème
+
+---
+
+## 🏗️ Solutions Alternatives si les approches ci-dessus ne fonctionnent pas
+
+1. **API Gateway + Lambda**
+   - Si CloudFront ne fonctionne pas, utiliser **API Gateway** pour exposer la fonction Lambda en HTTP
+   - Tester avec Postman pour vérifier la bonne réponse de l’API
+
+2. **Elastic Beanstalk pour un déploiement plus robuste**
+   - Si le front-end est plus complexe, utiliser **Elastic Beanstalk** avec un serveur Node.js
+
+3. **CloudFormation pour automatiser le déploiement**
+   - Si le challenge impose une automatisation, utiliser **CloudFormation** pour déployer Lambda, CloudFront et S3 en une seule commande
+
+4. **AWS Amplify pour un hébergement rapide**
+   - AWS Amplify peut être utilisé pour héberger et gérer le front-end avec un pipeline CI/CD intégré
+   - Permet un déploiement rapide avec intégration à GitHub/GitLab
+
+5. **Amazon Lightsail pour une alternative plus simple**
+   - Si une instance légère est suffisante, Lightsail peut héberger un serveur web à faible coût
+   - Configurable avec un CDN intégré pour de meilleures performances
+
+6. **Utilisation de EC2 + ALB**
+   - Déployer le front-end sur une instance EC2 derrière un Application Load Balancer (ALB)
+   - Permet un contrôle total sur l’environnement
+
+7. **Utilisation de Step Functions pour orchestrer la restauration**
+   - AWS Step Functions peut être utilisé pour exécuter une séquence d’actions automatisées en cas de panne
+   - Ex : Vérifier la présence de Lambda → Recréer si nécessaire → Configurer CloudFront → Vérifier l’accès
+
+---
+
